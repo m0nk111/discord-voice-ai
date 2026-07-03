@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+package-lock.json
+node_modules
+node_modules/*
+dist
+recordings/*
+sounds/tts_*.mp3

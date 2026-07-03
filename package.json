@@ -1,0 +1,54 @@
+{
+  "name": "discord-voice-ai",
+  "version": "2.0.0",
+  "description": "Lightweight, plug-and-play, self-hosted Discord voice chat bot. Talk to an AI (OpenAI GPT or Anthropic Claude) out loud in a voice channel, running on your own API key.",
+  "main": "dist/bot.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && node dist/bot.js",
+    "dev": "tsx src/bot.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/unit.test.ts"
+  },
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "voice-chat",
+    "voice",
+    "vc",
+    "ai",
+    "llm",
+    "bot",
+    "voice-assistant",
+    "speech-to-text",
+    "text-to-speech",
+    "openai",
+    "gpt",
+    "anthropic",
+    "claude",
+    "whisper",
+    "self-hosted",
+    "typescript"
+  ],
+  "author": "Jonas Nordlander",
+  "license": "MIT",
+  "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/voice": "^0.19.2",
+    "@noble/ciphers": "^2.2.0",
+    "axios": "^1.6.8",
+    "discord.js": "^14.26.4",
+    "dotenv": "^16.4.5",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "form-data": "^4.0.0",
+    "libsodium-wrappers": "^0.7.13",
+    "prism-media": "^1.3.5"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.27",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
