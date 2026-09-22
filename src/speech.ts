@@ -35,8 +35,10 @@ export async function transcribe(filePath: string): Promise<string> {
 // ignores unknown/empty fields, and OpenAI cloud tolerates the extra keys.
 export async function synthesize(text: string): Promise<Buffer> {
   const profile = activeVoiceProfile();
+  const baseUrl = config.speech.ttsBaseUrl || config.openai.baseUrl;
+  const apiKey = config.speech.ttsApiKey || config.openai.apiKey;
   const res = await axios.post(
-    `${config.openai.baseUrl}/audio/speech`,
+    `${baseUrl}/audio/speech`,
     {
       model: config.speech.ttsModel,
       input: text,
@@ -55,7 +57,7 @@ export async function synthesize(text: string): Promise<Buffer> {
     },
     {
       headers: {
-        Authorization: `Bearer ${config.openai.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       responseType: 'arraybuffer',

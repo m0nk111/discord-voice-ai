@@ -76,6 +76,11 @@ export const config = {
     sttLang: str('STT_LANG', ''),
     ttsModel: str('TTS_MODEL', 'tts-1'),
     ttsVoice: str('TTS_VOICE', 'alloy'),
+    // Optional dedicated TTS endpoint (OpenAI-compatible /audio/speech).
+    // Defaults to OPENAI_BASE_URL/apiKey (the guardian gateway). Point these
+    // at e.g. Groq or OpenAI cloud to use a different TTS engine.
+    ttsBaseUrl: str('TTS_BASE_URL', ''),
+    ttsApiKey: str('TTS_API_KEY', ''),
     // Named voice profile from voices/<id>.json (persona + zero-shot clone
     // fields). Overrides TTS_VOICE when set.
     ttsVoiceProfile: str('TTS_VOICE_PROFILE', ''),
