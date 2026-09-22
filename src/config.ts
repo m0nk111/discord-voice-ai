@@ -65,6 +65,12 @@ export const config = {
   },
   speech: {
     sttModel: str('STT_MODEL', 'whisper-1'),
+    // Optional dedicated STT endpoint. Defaults to OPENAI_BASE_URL/apiKey
+    // (the guardian gateway). Point these at a cloud STT provider to use a
+    // different engine for transcription only, e.g. a Groq or Deepgram
+    // OpenAI-compatible audio endpoint.
+    sttBaseUrl: str('STT_BASE_URL', ''),
+    sttApiKey: str('STT_API_KEY', ''),
     // Optional language hint for STT, e.g. "nl" or "en" (ISO-639-1). The
     // guardian gateway maps these; empty means auto-detect.
     sttLang: str('STT_LANG', ''),

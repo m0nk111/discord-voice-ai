@@ -9,17 +9,21 @@ import FormData from 'form-data';
 import { config } from './config';
 import { activeVoiceProfile } from './voices';
 
-// transcribe(filePath) -> text (Whisper-compatible)
+// transcribe(filePath) -> text (Whisper-compatible). Uses the dedicated
+// STT endpoint when configured (STT_BASE_URL/STT_API_KEY), else the shared
+// OpenAI-compatible base (guardian gateway).
 export async function transcribe(filePath: string): Promise<string> {
+  const baseUrl = config.speech.sttBaseUrl || config.openai.baseUrl;
+  const apiKey = config.speech.sttApiKey || config.openai.apiKey;
   const form = new FormData();
   form.append('model', config.speech.sttModel);
   if (config.speech.sttLang) form.append('language', config.speech.sttLang);
   form.append('file', fs.createReadStream(filePath));
 
-  const res = await axios.post(`${config.openai.baseUrl}/audio/transcriptions`, form, {
+  const res = await axios.post(`${baseUrl}/audio/transcriptions`, form, {
     headers: {
       ...form.getHeaders(),
-      Authorization: `Bearer ${config.openai.apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     },
   });
   return res.data.text;
