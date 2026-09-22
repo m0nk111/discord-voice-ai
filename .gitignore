@@ -6,4 +6,4 @@ node_modules
 node_modules/*
 dist
 recordings/*
-sounds/tts_*.mp3
+sounds/tts_*

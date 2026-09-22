@@ -34,6 +34,19 @@ It is built in TypeScript on discord.js, which can receive voice from a channel 
 
 That is the entire setup. `npm start` builds the project, logs the bot in, and registers its slash commands automatically. Leave the terminal open to keep it running.
 
+### Self-hosted gateway (e.g. guardian)
+
+The bot talks to any OpenAI-compatible endpoint, so it can run fully self-hosted. Point `OPENAI_BASE_URL` at the gateway, use the gateway's API key as `OPENAI_API_KEY`, and pick a model the gateway serves:
+
+```env
+OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+OPENAI_API_KEY=<gateway key>
+OPENAI_MODEL=qwen3.5-9b
+TTS_FORMAT=wav
+```
+
+One base URL then powers the whole voice loop: `/audio/transcriptions` (STT), `/chat/completions` (LLM) and `/audio/speech` (TTS). Notes: the guardian gateway serves TTS as `wav`/`pcm` only (16-bit mono 24 kHz WAV), STT accepts Whisper-style multipart uploads (wav or mp3, optional `STT_LANG=nl` hint), and unknown extra request fields such as `speed` are ignored.
+
 ## Using it
 1. Invite the bot to your server with an OAuth2 URL from your Discord application (give it permission to join and speak in voice channels, and to read and send messages).
 2. Join a voice channel, then run `/join`.

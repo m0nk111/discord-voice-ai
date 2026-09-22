@@ -605,7 +605,7 @@ async function enqueueSpeech(text: string, conn: VoiceConnection): Promise<void>
   }
   try {
     const audioBuffer = await speech.synthesize(clean);
-    const filename = `./sounds/tts_${index}.mp3`;
+    const filename = `./sounds/tts_${index}.${config.speech.ttsFormat}`;
     fs.writeFileSync(filename, audioBuffer);
     audioqueue.push({ file: filename, index });
   } catch (error) {

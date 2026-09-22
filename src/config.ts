@@ -65,8 +65,14 @@ export const config = {
   },
   speech: {
     sttModel: str('STT_MODEL', 'whisper-1'),
+    // Optional language hint for STT, e.g. "nl" or "en" (ISO-639-1). The
+    // guardian gateway maps these; empty means auto-detect.
+    sttLang: str('STT_LANG', ''),
     ttsModel: str('TTS_MODEL', 'tts-1'),
     ttsVoice: str('TTS_VOICE', 'alloy'),
+    // TTS response format. The guardian gateway serves "wav" or "pcm";
+    // OpenAI also accepts "mp3".
+    ttsFormat: str('TTS_FORMAT', 'wav'),
   },
   triggers: list('BOT_TRIGGERS', 'Assistant,Bot'),
   stopWords: list('STOP_WORDS', 'stop'),
