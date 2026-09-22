@@ -1,0 +1,11 @@
+{
+  "id": "trump",
+  "name": "Donald Trump",
+  "kind": "auto",
+  "instruct": "energetic, confident male voice with a distinctive New York accent; emphatic punchy delivery with dramatic pauses and repetition",
+  "ref_audio": "trump.wav",
+  "ref_text": "Our sovereignty will be reclaimed. Our safety will be restored. The scales of justice will be rebalanced.",
+  "language": "english",
+  "seed": null,
+  "description": "45th US president; brash, confident, superlative style. Zero-shot clone via the TTS engine's voice_samples/trump.wav; falls back to the design instruct when the sample is unavailable."
+}

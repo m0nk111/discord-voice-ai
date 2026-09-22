@@ -23,6 +23,7 @@ import ffmpegPath from 'ffmpeg-static';
 import prism from 'prism-media';
 
 import { config, validateConfig, speechConfigWarning, buildSystemPrompt } from './config';
+import { activeVoiceProfile } from './voices';
 import * as llm from './llm';
 import { ChatMessage } from './llm';
 import * as speech from './speech';
@@ -66,6 +67,12 @@ const warning = speechConfigWarning();
 if (warning) logToConsole(`! ${warning}`, 'warn', 1);
 logToConsole(`Bot triggers: ${config.triggers.join(', ')}`, 'info', 1);
 logToConsole(`LLM: ${config.provider} (${llm.activeModel})`, 'info', 1);
+const voiceProfile = activeVoiceProfile();
+logToConsole(
+  `Voice: ${voiceProfile ? `profile '${voiceProfile.id}' (${voiceProfile.ref_audio ? `clone ${voiceProfile.ref_audio}` : 'design instruct'})` : `plain voice '${config.speech.ttsVoice}'`}`,
+  'info',
+  1,
+);
 
 if (!fs.existsSync('./recordings')) fs.mkdirSync('./recordings');
 if (!fs.existsSync('./sounds')) fs.mkdirSync('./sounds');
@@ -143,6 +150,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
           if (connection === conn) connection = null;
         }
       });
+      if (config.voiceDebug) {
+        conn.on('debug', (m: string) => logToConsole(`[voice] ${m}`, 'info', 2));
+        conn.on('error', (e: Error) => logToConsole(`[voice-error] ${e.message}`, 'error', 1));
+      }
 
       try {
         // Don't record until the connection is ready, or the receiver never

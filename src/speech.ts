@@ -7,6 +7,7 @@ import axios from 'axios';
 import fs from 'fs';
 import FormData from 'form-data';
 import { config } from './config';
+import { activeVoiceProfile } from './voices';
 
 // transcribe(filePath) -> text (Whisper-compatible)
 export async function transcribe(filePath: string): Promise<string> {
@@ -24,16 +25,29 @@ export async function transcribe(filePath: string): Promise<string> {
   return res.data.text;
 }
 
-// synthesize(text) -> audio Buffer in config.speech.ttsFormat ("wav" by default)
+// synthesize(text) -> audio Buffer in config.speech.ttsFormat ("wav" by default).
+// When a voice profile is active, its design instruct and optional zero-shot
+// clone fields (ref_audio/ref_text/language) ride along; the guardian engine
+// ignores unknown/empty fields, and OpenAI cloud tolerates the extra keys.
 export async function synthesize(text: string): Promise<Buffer> {
+  const profile = activeVoiceProfile();
   const res = await axios.post(
     `${config.openai.baseUrl}/audio/speech`,
     {
       model: config.speech.ttsModel,
       input: text,
-      voice: config.speech.ttsVoice,
+      voice: profile?.instruct ?? config.speech.ttsVoice,
       response_format: config.speech.ttsFormat,
       speed: 1.0,
+      ...(profile
+        ? {
+            ref_audio: profile.ref_audio,
+            ref_text: profile.ref_text,
+            language: profile.language,
+            zero_shot: profile.zero_shot,
+            seed: profile.seed ?? undefined,
+          }
+        : {}),
     },
     {
       headers: {

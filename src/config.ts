@@ -70,6 +70,9 @@ export const config = {
     sttLang: str('STT_LANG', ''),
     ttsModel: str('TTS_MODEL', 'tts-1'),
     ttsVoice: str('TTS_VOICE', 'alloy'),
+    // Named voice profile from voices/<id>.json (persona + zero-shot clone
+    // fields). Overrides TTS_VOICE when set.
+    ttsVoiceProfile: str('TTS_VOICE_PROFILE', ''),
     // TTS response format. The guardian gateway serves "wav" or "pcm";
     // OpenAI also accepts "mp3".
     ttsFormat: str('TTS_FORMAT', 'wav'),
@@ -81,6 +84,8 @@ export const config = {
   memoryKeep: int('MEMORY_KEEP', 20),
   memoryMaxTokens: int('MEMORY_MAX_TOKENS', 100000),
   vision: bool('VISION', true),
+  // Verbose @discordjs/voice connection logging (voice join/UDP diagnostics).
+  voiceDebug: bool('VOICE_DEBUG', false),
   systemPrompt: str('SYSTEM_PROMPT', DEFAULT_SYSTEM_PROMPT),
 };
 

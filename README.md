@@ -54,6 +54,16 @@ One base URL then powers the whole voice loop: `/audio/transcriptions` (STT), `/
 
 With `/join free` there is no wake word: it responds to everything you say, unless it decides a message was not meant for it and stays quiet.
 
+### Voice profiles (persona voices)
+
+`TTS_VOICE_PROFILE=<id>` loads `voices/<id>.json` — the same format the
+councelofdicksv2 project uses. A profile carries a VoiceDesign `instruct`
+passed through the gateway's TTS engine, plus optional zero-shot clone fields
+(`ref_audio`, `ref_text`, `language`) resolved from the engine's own
+`voice_samples/` directory. Example: `voices/trump.json`. Without a profile the
+bot uses plain `TTS_VOICE`. Remember the bot replies in whatever language the
+`SYSTEM_PROMPT` dictates — pick one that suits the voice.
+
 ## Commands
 - `/join`: join your voice channel and listen for a wake word.
 - `/join silent`: same, without the confirmation beeps.
