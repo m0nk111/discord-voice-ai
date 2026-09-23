@@ -27,7 +27,13 @@ proxy on `:11434`) instead of OpenAI cloud. Scope: this repository only.
 
 - English code/comments/docs. No secrets in source: keys live in `.env`
   (gitignored) or guardian's `config/guardian.keys.yaml` — never commit them.
-- Guardian contract (verified 2026-09-22): TTS `POST /v1/audio/speech` accepts
+- Guardian speech contract (route-oriented, PR #24, verified 2026-09-23): a
+speech `model` is an ADDRESS `[guardian/]{provider}/{brand}/{model}` resolving
+via the provider file alone (stt_url/tts_url -> local engine, base_url+api_key
+-> cloud); an explicit address is EXACT (failures never fall back); no address
+-> default failover chain. Gap: single-segment upstream ids (whisper-large-v3)
+are not addressable — guardian issue filed, Sjonnie STT runs the default local
+chain until fixed. Older verified details: TTS `POST /v1/audio/speech` accepts
   `response_format` `wav`/`pcm` only (16-bit mono 24 kHz WAV out), extra fields
   (`model`, `speed`) are ignored, `voice` maps to a VoiceDesign instruction
   (unknown strings pass through verbatim). STT `POST /v1/audio/transcriptions`

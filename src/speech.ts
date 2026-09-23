@@ -35,7 +35,9 @@ export async function transcribe(filePath: string): Promise<string> {
   telemetry.emit('stt_request', { engine });
   telemetry.bump('stt_requests');
   const form = new FormData();
-  form.append('model', config.speech.sttModel);
+  // Only send an addressable model when configured — an empty value lets the
+  // gateway use its default failover chain (guardian PR #24 contract).
+  if (config.speech.sttModel.trim()) form.append('model', config.speech.sttModel.trim());
   if (config.speech.sttLang) form.append('language', config.speech.sttLang);
   form.append('file', fs.createReadStream(filePath));
 
