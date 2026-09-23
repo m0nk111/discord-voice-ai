@@ -75,19 +75,32 @@ export async function runGate(pcmPath: string, totalMs: number): Promise<GateRes
   const minSpeechMs = config.audioGate.minSpeechMs;
   const minRatio = config.audioGate.minSpeechRatio;
 
-  const stderr = await new Promise<string>((resolve, reject) => {
+  const stderr = await new Promise<string>((resolve) => {
     const chunks: Buffer[] = [];
+    // Raw PCM has no header: the sample format must be stated explicitly or
+    // ffmpeg fails before silencedetect runs. On error we still resolve with
+    // whatever silencedetect produced (fail-open: the gate degrades to
+    // pass-all, never to a stuck pipeline) and log the failure.
     ffmpeg(pcmPath)
+      .inputFormat('s16le')
+      .audioChannels(1)
+      .audioFrequency(48000)
       .audioFilters([`silencedetect=noise=${noiseDb}dB:d=0.3`])
       .format('null')
-      .on('error', (err) => reject(err))
+      .output('-')
+      .on('error', (err) => {
+        chunks.push(Buffer.from(`[gate-ffmpeg-error] ${err.message}\n`));
+        resolve(Buffer.concat(chunks).toString('utf8'));
+      })
       .on('stderr', (line) => chunks.push(Buffer.from(`${line}\n`)))
       .on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
-      .output('-')
       .run();
-  }).catch(() => '');
+  });
 
   const silences = parseSilencedetect(stderr);
+  if (stderr.includes('[gate-ffmpeg-error]')) {
+    console.warn(`[gate] ffmpeg analysis failed, failing open: ${stderr.split('\n').find((l) => l.includes('[gate-ffmpeg-error]'))}`);
+  }
   const speech = speechIntervals(totalMs, silences);
   const speechMs = sumDurationMs(speech);
   const ratio = totalMs > 0 ? speechMs / totalMs : 0;
