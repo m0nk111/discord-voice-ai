@@ -291,13 +291,32 @@ client.on(Events.VoiceStateUpdate, (oldState, newState) => {
 });
 
 // ---- Voice recording ----
-function subscribeToUser(conn: VoiceConnection, userID: string) {
+function subscribeToUser(conn: VoiceConnection, userID: string, channel: VoiceBasedChannel) {
   const filePath = `./recordings/${userID}.pcm`;
   const writeStream = fs.createWriteStream(filePath);
+  telemetry.emit('recording_start', { user: userID });
   const listenStream = conn.receiver.subscribe(userID, {
     end: { behavior: EndBehaviorType.AfterSilence, duration: config.waitTime },
   });
   const opusDecoder = new prism.opus.Decoder({ frameSize: 960, channels: 1, rate: 48000 });
+  // Discord voice receive regularly delivers corrupt Opus packets (dropped
+  // connections, screen-share audio). Without this handler one bad packet
+  // crashes the whole bot (unhandled 'error' on the decoder stream).
+  const onStreamError = (err: Error) => {
+    logToConsole(`! Voice stream error for ${userID}: ${err.message} — listener restarted`, 'warn', 1);
+    listenStream.destroy();
+    opusDecoder.destroy();
+    // Abandon the partial recording; only re-arm when conversion has NOT
+    // already taken over (its restartListening would double-subscribe).
+    if (!writeStream.writableEnded) {
+      writeStream.destroy();
+      fs.rmSync(filePath, { force: true });
+      restartListening(userID, conn, channel);
+    }
+  };
+  opusDecoder.on('error', onStreamError);
+  listenStream.on('error', onStreamError);
+  writeStream.on('error', onStreamError);
   listenStream.pipe(opusDecoder).pipe(writeStream);
   return { filePath, writeStream };
 }
@@ -305,7 +324,7 @@ function subscribeToUser(conn: VoiceConnection, userID: string) {
 function handleRecording(conn: VoiceConnection, channel: VoiceBasedChannel): void {
   channel.members.forEach((member: GuildMember) => {
     if (member.user.bot) return;
-    const { filePath, writeStream } = subscribeToUser(conn, member.user.id);
+    const { filePath, writeStream } = subscribeToUser(conn, member.user.id, channel);
     writeStream.on('finish', () => {
       logToConsole(`> Audio recorded for ${member.user.username}`, 'info', 2);
       convertAndHandleFile(filePath, member.user.id, member.user.username, conn, channel);
@@ -314,7 +333,7 @@ function handleRecording(conn: VoiceConnection, channel: VoiceBasedChannel): voi
 }
 
 function handleRecordingForUser(userID: string, conn: VoiceConnection, channel: VoiceBasedChannel): void {
-  const { filePath, writeStream } = subscribeToUser(conn, userID);
+  const { filePath, writeStream } = subscribeToUser(conn, userID, channel);
   writeStream.on('finish', () => {
     logToConsole(`> Audio recorded for ${userID}`, 'info', 2);
     convertAndHandleFile(filePath, userID, userID, conn, channel);
