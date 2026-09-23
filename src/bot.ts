@@ -24,6 +24,9 @@ import prism from 'prism-media';
 
 import { config, validateConfig, speechConfigWarning, buildSystemPrompt } from './config';
 import { activeVoiceProfile } from './voices';
+import { startDashboard } from './dashboard';
+import { runGate } from './audiogate';
+import * as telemetry from './telemetry';
 import * as llm from './llm';
 import { ChatMessage } from './llm';
 import * as speech from './speech';
@@ -65,6 +68,7 @@ try {
 }
 const warning = speechConfigWarning();
 if (warning) logToConsole(`! ${warning}`, 'warn', 1);
+startDashboard();
 logToConsole(`Bot triggers: ${config.triggers.join(', ')}`, 'info', 1);
 logToConsole(`LLM: ${config.provider} (${llm.activeModel})`, 'info', 1);
 const voiceProfile = activeVoiceProfile();
@@ -304,7 +308,7 @@ function handleRecording(conn: VoiceConnection, channel: VoiceBasedChannel): voi
     const { filePath, writeStream } = subscribeToUser(conn, member.user.id);
     writeStream.on('finish', () => {
       logToConsole(`> Audio recorded for ${member.user.username}`, 'info', 2);
-      convertAndHandleFile(filePath, member.user.id, conn, channel);
+      convertAndHandleFile(filePath, member.user.id, member.user.username, conn, channel);
     });
   });
 }
@@ -313,7 +317,7 @@ function handleRecordingForUser(userID: string, conn: VoiceConnection, channel: 
   const { filePath, writeStream } = subscribeToUser(conn, userID);
   writeStream.on('finish', () => {
     logToConsole(`> Audio recorded for ${userID}`, 'info', 2);
-    convertAndHandleFile(filePath, userID, conn, channel);
+    convertAndHandleFile(filePath, userID, userID, conn, channel);
   });
 }
 
@@ -322,28 +326,71 @@ function restartListening(userID: string, conn: VoiceConnection | null, channel:
   handleRecordingForUser(userID, conn, channel);
 }
 
-function convertAndHandleFile(filePath: string, userid: string, conn: VoiceConnection, channel: VoiceBasedChannel): void {
+// ---- Transcription + voice command routing ----
+
+// convertAndHandleFile: gate (drop noise/silence-only segments) → convert the
+// speech span → transcribe. The PCM is s16le mono 48 kHz = 96,000 bytes/s, so
+// the file size gives the capture duration for free.
+function convertAndHandleFile(filePath: string, userid: string, username: string, conn: VoiceConnection, channel: VoiceBasedChannel): void {
   const mp3Path = filePath.replace('.pcm', '.mp3');
-  ffmpeg(filePath)
-    .inputFormat('s16le')
-    .audioChannels(1)
-    .format('mp3')
-    .on('error', (err: Error) => {
-      logToConsole(`X Error converting file: ${err.message}`, 'error', 1);
-      currentlythinking = false;
-      restartListening(userid, conn, channel);
-    })
-    .save(mp3Path)
-    .on('end', () => {
-      logToConsole(`> Converted to MP3: ${mp3Path}`, 'info', 2);
-      handleTranscription(mp3Path, userid, conn, channel);
-    });
+  const totalMs = Math.round((fs.statSync(filePath).size / 96000) * 1000);
+  telemetry.emit('recording_end', { user: username, ms: totalMs });
+
+  void (async () => {
+    let trimStartMs: number | null = null;
+    let trimEndMs: number | null = null;
+    if (config.audioGate.enabled) {
+      const gate = await runGate(filePath, totalMs);
+      if (!gate.kept) {
+        logToConsole(`> Gate: skipped — ${gate.reason}`, 'info', 2);
+        telemetry.emit('gate_skip', {
+          user: username, reason: gate.reason,
+          speechMs: gate.speechMs, totalMs: gate.totalMs, ratio: gate.ratio,
+        });
+        telemetry.bump('gate_skipped');
+        fs.rmSync(filePath, { force: true });
+        restartListening(userid, conn, channel);
+        return;
+      }
+      trimStartMs = gate.trimStartMs;
+      trimEndMs = gate.trimEndMs;
+      const trimmedMs = trimEndMs !== null && trimStartMs !== null ? trimEndMs - trimStartMs : totalMs;
+      logToConsole(
+        `> Gate: speech ${Math.round(gate.speechMs)}ms / ${Math.round(totalMs)}ms (${Math.round(gate.ratio * 100)}%)`, 'info', 2,
+      );
+      telemetry.emit('gate_pass', {
+        user: username, speechMs: gate.speechMs, totalMs: gate.totalMs,
+        ratio: gate.ratio, trimmedMs,
+      });
+      telemetry.bump('stt_audio_ms', trimmedMs);
+    }
+
+    let convert = ffmpeg(filePath)
+      .inputFormat('s16le')
+      .audioChannels(1);
+    if (trimStartMs !== null && trimEndMs !== null && trimEndMs - trimStartMs < totalMs * 0.95) {
+      convert = convert.seekInput(trimStartMs / 1000).duration((trimEndMs - trimStartMs) / 1000);
+    }
+    convert
+      .format('mp3')
+      .on('error', (err: Error) => {
+        logToConsole(`X Error converting file: ${err.message}`, 'error', 1);
+        currentlythinking = false;
+        restartListening(userid, conn, channel);
+      })
+      .save(mp3Path)
+      .on('end', () => {
+        logToConsole(`> Converted to MP3: ${mp3Path}`, 'info', 2);
+        handleTranscription(mp3Path, userid, username, conn, channel);
+      });
+  })();
 }
 
 // ---- Transcription + voice command routing ----
-async function handleTranscription(fileName: string, userId: string, conn: VoiceConnection, channel: VoiceBasedChannel): Promise<void> {
+async function handleTranscription(fileName: string, userId: string, username: string, conn: VoiceConnection, channel: VoiceBasedChannel): Promise<void> {
   try {
     let transcription = await speech.transcribe(fileName);
+    telemetry.emit('stt_result', { user: username, text: transcription.slice(0, 200) });
     const clean = transcription.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '').toLowerCase();
 
     // Whisper hallucinates these short phrases on silence/background noise.
@@ -415,6 +462,7 @@ async function handleTranscription(fileName: string, userId: string, conn: Voice
     // Otherwise, send to the LLM.
     currentlythinking = true;
     playSound(conn, 'understood');
+    telemetry.emit('llm_start', { user: username, utterance: transcription.slice(0, 200) });
     sendToLLM(transcription, userId, conn);
     restartListening(userId, conn, channel);
   } catch (error) {
@@ -486,6 +534,8 @@ async function sendToLLM(transcription: string, userId: string, conn: VoiceConne
   responseStreaming = false;
 
   logToConsole(`> LLM Response: ${full}`, 'info', 1);
+  telemetry.emit('llm_reply', { text: full.slice(0, 300) });
+  telemetry.bump('llm_replies');
 
   if (!ignored && full.trim()) {
     messages.push({ role: 'assistant', content: full });

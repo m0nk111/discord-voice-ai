@@ -12,9 +12,12 @@ proxy on `:11434`) instead of OpenAI cloud. Scope: this repository only.
 
 - TypeScript, Node ≥ 20 (dev machine: Node 25). `discord.js` 14,
   `@discordjs/voice`, `prism-media`, `axios`, `ffmpeg-static`, `dotenv`.
-- `src/` — all source: `bot.ts` (Discord client, voice join/receive), `config.ts`
-  (env-driven config, single source), `speech.ts` (STT/TTS HTTP calls),
-  `llm.ts` (chat completions, SSE streaming), `text.ts`.
+- `src/` — all source: `bot.ts` (Discord client, voice join/receive, pipeline
+  wiring), `config.ts` (env-driven config, single source), `speech.ts` (STT/TTS
+  HTTP calls), `audiogate.ts` (pre-upload noise gate via ffmpeg silencedetect),
+  `telemetry.ts` + `dashboard.ts` (in-process realtime SSE dashboard,
+  `DASHBOARD_PORT` default 3141), `llm.ts` (chat completions, SSE streaming),
+  `text.ts`.
 - `test/unit.test.ts` — node:test suite (runs via tsx, no separate test runner).
 - Config comes from `.env` (see `.env.example`); required: `DISCORD_TOKEN`,
   `DISCORD_ID`, `OPENAI_API_KEY` (the guardian key). `OPENAI_BASE_URL` points

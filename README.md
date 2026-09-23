@@ -64,6 +64,22 @@ passed through the gateway's TTS engine, plus optional zero-shot clone fields
 bot uses plain `TTS_VOICE`. Remember the bot replies in whatever language the
 `SYSTEM_PROMPT` dictates — pick one that suits the voice.
 
+## Noise gate (save uploads)
+
+Before any segment reaches the STT gateway, an audio gate measures how much
+actual speech it carries (ffmpeg `silencedetect`). Segments that are silence,
+keyboard noise or background hum are dropped locally — no upload, no
+transcription, no hallucinations. Speech-bearing segments are trimmed to the
+speech span before upload. Tune with `VAD_NOISE_DB`, `VAD_MIN_SPEECH_MS` and
+`VAD_MIN_SPEECH_RATIO` (see `.env.example`); `AUDIO_GATE=false` disables it.
+
+## Realtime dashboard
+
+The bot serves a live activity page on `http://<host>:3141/` (`DASHBOARD_PORT`,
+`DASHBOARD_PORT=0` disables): STT/TTS events stream in realtime (SSE) with
+counters for requests, gated noise, audio seconds sent and LLM replies. Set
+`DASHBOARD_TOKEN` to require a token on the page and JSON endpoints.
+
 ## Commands
 - `/join`: join your voice channel and listen for a wake word.
 - `/join silent`: same, without the confirmation beeps.

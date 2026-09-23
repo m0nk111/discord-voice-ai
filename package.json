@@ -8,7 +8,7 @@
     "start": "npm run build && node dist/bot.js",
     "dev": "tsx src/bot.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test test/unit.test.ts"
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "keywords": [
     "discord",

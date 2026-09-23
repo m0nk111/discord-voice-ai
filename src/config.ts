@@ -97,6 +97,19 @@ export const config = {
   vision: bool('VISION', true),
   // Verbose @discordjs/voice connection logging (voice join/UDP diagnostics).
   voiceDebug: bool('VOICE_DEBUG', false),
+  // Pre-upload audio gate: drop segments that carry too little speech before
+  // they reach the STT gateway (saves uploads and hallucinated transcripts).
+  audioGate: {
+    enabled: bool('AUDIO_GATE', true),
+    noiseDb: int('VAD_NOISE_DB', -35),
+    minSpeechMs: int('VAD_MIN_SPEECH_MS', 600),
+    minSpeechRatio: int('VAD_MIN_SPEECH_RATIO', 25) / 100,
+  },
+  // Realtime activity dashboard (SSE + JSON) served by the bot process.
+  dashboard: {
+    port: int('DASHBOARD_PORT', 3141),
+    token: str('DASHBOARD_TOKEN', ''),
+  },
   systemPrompt: str('SYSTEM_PROMPT', DEFAULT_SYSTEM_PROMPT),
 };
 
