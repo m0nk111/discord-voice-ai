@@ -3,6 +3,7 @@
 // for the selected provider.
 
 import 'dotenv/config';
+import fs from 'fs';
 
 export type Provider = 'openai' | 'anthropic';
 
@@ -110,7 +111,19 @@ export const config = {
     port: int('DASHBOARD_PORT', 3141),
     token: str('DASHBOARD_TOKEN', ''),
   },
-  systemPrompt: str('SYSTEM_PROMPT', DEFAULT_SYSTEM_PROMPT),
+  // Persona: SYSTEM_PROMPT inline, or SYSTEM_PROMPT_FILE pointing at a text
+  // file (loaded at startup; a missing file falls back to SYSTEM_PROMPT).
+  systemPrompt: (() => {
+    const file = str('SYSTEM_PROMPT_FILE', '');
+    if (file) {
+      try {
+        return fs.readFileSync(file, 'utf8').trim();
+      } catch (err) {
+        console.warn(`[config] SYSTEM_PROMPT_FILE '${file}' unreadable (${(err as Error).message}); using SYSTEM_PROMPT`);
+      }
+    }
+    return str('SYSTEM_PROMPT', DEFAULT_SYSTEM_PROMPT);
+  })(),
 };
 
 // Build the full system prompt for a mode by appending that mode's style.

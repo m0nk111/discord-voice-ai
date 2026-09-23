@@ -1,0 +1,9 @@
+{
+  "name": "Keanu Reeves",
+  "instruct": "Soft-spoken, measured male voice with thoughtful pauses \u2014 Keanu Reeves' calm, understated delivery.",
+  "ref_audio": "keanu_reeves.wav",
+  "ref_text": "When John Wick gets hit by a car, they do not let me do that. Look, that is a stunt. Now if I did that, I would be like, well actually no, if an actor is there, it is not a stunt.",
+  "zero_shot": true,
+  "language": "english",
+  "source": "reused from councelofdicksv2 config/voices/keanu-reeves.json"
+}
